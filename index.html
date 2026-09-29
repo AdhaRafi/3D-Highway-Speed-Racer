@@ -1,0 +1,624 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>3D Highway Speed Racer - WebGL 3D Car Game</title>
+    <meta name="description" content="High-speed 3D highway traffic racer with procedural sports cars, dynamic AI traffic, nitro boost, powerups, and synthwave audio.">
+    <link rel="stylesheet" href="style.css">
+    
+    <!-- Three.js ES Modules via Local Module or CDN Import Map -->
+    <script type="importmap">
+    {
+        "imports": {
+            "three": "./js/three.module.js",
+            "three/addons/": "https://unpkg.com/three@0.164.1/examples/jsm/"
+        }
+    }
+    </script>
+</head>
+<body>
+    <!-- 3D WebGL Canvas Container -->
+    <div id="canvas-container"></div>
+
+    <!-- Toast Notification Banner -->
+    <div id="banner-toast" class="toast-banner">RACE START!</div>
+
+    <!-- ====================================================================
+         TOP HUD: Score, Coins, Multiplier, Active Powerups, and Sound Controls
+         ==================================================================== -->
+    <header id="hud-top">
+        <div class="hud-panel">
+            <div class="glass-pill">
+                <span class="label-mini">SCORE</span>
+                <span id="score-value" class="stat-value">0</span>
+            </div>
+            <div id="multiplier-value" class="multiplier-pill">1x</div>
+            <div class="glass-pill">
+                <span class="label-mini">DISTANCE</span>
+                <span id="distance-value" class="stat-value">0.00 km</span>
+            </div>
+        </div>
+
+        <div class="hud-panel">
+            <div class="glass-pill coin-box">
+                <div class="coin-icon"></div>
+                <span id="coin-value" class="stat-value">0</span>
+            </div>
+
+            <!-- Active Powerup Badges -->
+            <div id="badge-shield" class="powerup-badge">
+                <span>🛡️ SHIELD</span>
+            </div>
+            <div id="badge-magnet" class="powerup-badge">
+                <span>🧲 MAGNET <span class="badge-time">10s</span></span>
+            </div>
+
+            <button id="btn-audio" class="hud-btn" title="Toggle Sound" aria-label="Toggle Sound">🔊</button>
+            <button id="btn-quick-lang" class="hud-btn" title="Toggle Language">🇮🇩 ID</button>
+            <button id="btn-quick-map" class="hud-btn" title="Ganti Map (M)" aria-label="Cycle Map">🗺️</button>
+            <button id="btn-quick-settings" class="hud-btn btn-open-settings" title="Settings (P)" aria-label="Open Settings">⚙️</button>
+            <button id="btn-pause" class="hud-btn" title="Pause Game" aria-label="Pause Game">⏸</button>
+        </div>
+    </header>
+
+    <!-- ====================================================================
+         BOTTOM RACING INSTRUMENTS: Speedometer, Nitro, and Touch Pedals
+         ==================================================================== -->
+    <footer id="hud-bottom">
+        <!-- Touch Steering Cluster (Left side) -->
+        <div class="touch-cluster-left">
+            <button id="btn-left" class="touch-pedal" title="Steer Left" aria-label="Steer Left">◀</button>
+            <button id="btn-right" class="touch-pedal" title="Steer Right" aria-label="Steer Right">▶</button>
+        </div>
+
+        <!-- Central Radial Speedometer & Nitro Boost Gauge -->
+        <div class="instrument-cluster">
+            <div class="speedometer-box">
+                <svg class="rpm-svg" viewBox="0 0 160 100">
+                    <!-- Background Arc -->
+                    <path class="rpm-bg" d="M 20 85 A 60 60 0 0 1 140 85" />
+                    <!-- Dynamic RPM Arc -->
+                    <path id="rpm-arc" class="rpm-meter" d="M 20 85 A 60 60 0 0 1 140 85" />
+                </svg>
+                <div class="speed-readout">
+                    <span id="speed-value">0</span>
+                    <span class="unit-label">KM/H</span>
+                </div>
+            </div>
+
+            <!-- Nitro Energy Bar -->
+            <div class="nitro-box">
+                <div class="nitro-header">
+                    <span>NITRO BOOST</span>
+                    <span id="nitro-text">100%</span>
+                </div>
+                <div class="nitro-track">
+                    <div id="nitro-fill"></div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Touch Actions Cluster (Right side) -->
+        <div class="touch-cluster-right">
+            <button id="btn-camera" class="touch-pedal pedal-small" title="Switch Camera" aria-label="Switch Camera">📷</button>
+            <button id="btn-brake" class="touch-pedal pedal-brake" title="Brake" aria-label="Brake">🛑</button>
+            <button id="btn-nitro" class="touch-pedal pedal-nitro" title="Nitro Boost" aria-label="Nitro Boost">⚡</button>
+        </div>
+    </footer>
+
+    <!-- ====================================================================
+         START / TITLE SCREEN MODAL
+         ==================================================================== -->
+    <div id="start-screen" class="modal-overlay">
+        <div class="modal-card">
+            <h1 class="game-title">TURBO OVERDRIVE 3D</h1>
+            <p class="game-subtitle">Endless Highway Speed Racer</p>
+
+            <!-- Car Livery Customizer -->
+            <div class="custom-section">
+                <div class="section-title">Select Supercar Livery</div>
+                <div class="color-picker-grid">
+                    <div class="color-swatch active" style="background-color: #ff2a5f;" data-color="ff2a5f" title="Crimson Red"></div>
+                    <div class="color-swatch" style="background-color: #00f7ff;" data-color="00f7ff" title="Apex Cyan"></div>
+                    <div class="color-swatch" style="background-color: #ffbe0b;" data-color="ffbe0b" title="Cyber Gold"></div>
+                    <div class="color-swatch" style="background-color: #10b981;" data-color="10b981" title="Neon Emerald"></div>
+                    <div class="color-swatch" style="background-color: #a855f7;" data-color="a855f7" title="Hot Violet"></div>
+                    <div class="color-swatch" style="background-color: #1e293b;" data-color="1e293b" title="Stealth Noir"></div>
+                </div>
+            </div>
+
+            <!-- Scenery Map Selector -->
+            <div class="custom-section">
+                <div class="section-title">Select Scenery Map</div>
+                <div class="theme-selector-grid">
+                    <button class="theme-btn active" data-theme="beach">🏖️ Pantai Tropis</button>
+                    <button class="theme-btn" data-theme="mountain">🏔️ Gunung Salju</button>
+                    <button class="theme-btn" data-theme="desert">🏜️ Gurun Canyon</button>
+                    <button class="theme-btn" data-theme="sakura">🌸 Lembah Sakura</button>
+                    <button class="theme-btn" data-theme="cyberpunk">🌃 Cyberpunk</button>
+                    <button class="theme-btn" data-theme="sunset">🌇 Neon Sunset</button>
+                </div>
+            </div>
+
+            <!-- Controls Quick Guide -->
+            <div class="controls-hint">
+                <div><kbd>A</kbd>/<kbd>D</kbd> Steer</div>
+                <div><kbd>W</kbd>/<kbd>SPACE</kbd> Nitro</div>
+                <div><kbd>S</kbd> Brake</div>
+                <div><kbd>C</kbd> Camera</div>
+                <div><kbd>M</kbd> Map</div>
+            </div>
+
+            <!-- Action Buttons: Start Race, Settings & Garage Store -->
+            <div class="btn-group-row" style="width: 100%; margin-top: 10px;">
+                <button id="btn-start-game" class="btn-primary" style="flex: 1.4;" data-i18n="start_race">START RACE</button>
+                <button id="btn-open-store" class="btn-secondary btn-store-glow" style="flex: 1;" data-i18n="store">🛒 STORE</button>
+                <button class="btn-open-settings" data-i18n="settings">⚙️ SETTING</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- ====================================================================
+         GAME OVER MODAL (With Livery & Map selectors + Main Menu navigation)
+         ==================================================================== -->
+    <div id="game-over-screen" class="modal-overlay" style="display: none;">
+        <div class="modal-card">
+            <div id="new-record-badge" class="record-badge">🏆 NEW PERSONAL BEST!</div>
+            <h2 class="game-title" style="background: linear-gradient(135deg, #ff0055, #ff6b6b); -webkit-background-clip: text; -webkit-text-fill-color: transparent;">CAR CRASHED!</h2>
+            <p class="game-subtitle">Watch out for highway traffic next time!</p>
+
+            <div class="stats-grid">
+                <div class="stat-card full-width">
+                    <span class="label-mini">FINAL SCORE</span>
+                    <span id="final-score" class="stat-value" style="font-size: 2rem; color: #00f7ff;">0</span>
+                </div>
+                <div class="stat-card">
+                    <span class="label-mini">BEST SCORE</span>
+                    <span id="high-score" class="stat-value" style="color: #ffd700;">0</span>
+                </div>
+                <div class="stat-card">
+                    <span class="label-mini">DISTANCE</span>
+                    <span id="stat-distance" class="stat-value">0 m</span>
+                </div>
+                <div class="stat-card">
+                    <span class="label-mini">COINS</span>
+                    <span id="stat-coins" class="stat-value">0</span>
+                </div>
+                <div class="stat-card">
+                    <span class="label-mini">NEAR MISS</span>
+                    <span id="stat-near-miss" class="stat-value" style="color: #f59e0b;">0</span>
+                </div>
+            </div>
+
+            <!-- Car Livery Customizer on Game Over -->
+            <div class="custom-section">
+                <div class="section-title">Change Supercar Livery</div>
+                <div class="color-picker-grid">
+                    <div class="color-swatch active" style="background-color: #ff2a5f;" data-color="ff2a5f" title="Crimson Red"></div>
+                    <div class="color-swatch" style="background-color: #00f7ff;" data-color="00f7ff" title="Apex Cyan"></div>
+                    <div class="color-swatch" style="background-color: #ffbe0b;" data-color="ffbe0b" title="Cyber Gold"></div>
+                    <div class="color-swatch" style="background-color: #10b981;" data-color="10b981" title="Neon Emerald"></div>
+                    <div class="color-swatch" style="background-color: #a855f7;" data-color="a855f7" title="Hot Violet"></div>
+                    <div class="color-swatch" style="background-color: #1e293b;" data-color="1e293b" title="Stealth Noir"></div>
+                </div>
+            </div>
+
+            <!-- Atmosphere Theme Selector on Game Over -->
+            <div class="custom-section">
+                <div class="section-title">Change Scenery Map</div>
+                <div class="theme-selector-grid">
+                    <button class="theme-btn active" data-theme="beach">🏖️ Pantai Tropis</button>
+                    <button class="theme-btn" data-theme="mountain">🏔️ Gunung Salju</button>
+                    <button class="theme-btn" data-theme="desert">🏜️ Gurun Canyon</button>
+                    <button class="theme-btn" data-theme="sakura">🌸 Lembah Sakura</button>
+                    <button class="theme-btn" data-theme="cyberpunk">🌃 Cyberpunk</button>
+                    <button class="theme-btn" data-theme="sunset">🌇 Neon Sunset</button>
+                </div>
+            </div>
+
+            <!-- Action Buttons: Race Again, Store & Main Menu -->
+            <div class="btn-group-row">
+                <button id="btn-restart" class="btn-primary">⚡ RACE AGAIN</button>
+                <button id="btn-game-over-store" class="btn-secondary btn-store-glow">🛒 STORE</button>
+                <button id="btn-to-menu" class="btn-secondary">🏠 MENU</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- ====================================================================
+         GARAGE & UPGRADE STORE MODAL
+         ==================================================================== -->
+    <div id="store-screen" class="modal-overlay" style="display: none;">
+        <div class="modal-card store-card">
+            <!-- Store Header with Coin Bank -->
+            <div class="store-header">
+                <div>
+                    <h2 class="game-title" style="margin-bottom: 2px; font-size: 1.7rem;">APEX GARAGE & STORE</h2>
+                    <p class="game-subtitle" style="margin-bottom: 0;">Unlock Supercars & Upgrade Race Attributes</p>
+                </div>
+                <div class="glass-pill coin-box store-coin-pill">
+                    <div class="coin-icon"></div>
+                    <span id="store-coin-val" class="stat-value" style="color: #ffd700;">250</span>
+                </div>
+            </div>
+
+            <!-- Store Tabs Navigation -->
+            <div class="store-tabs">
+                <button id="tab-btn-cars" class="store-tab-btn active" data-tab="cars">🏎️ SUPERCARS</button>
+                <button id="tab-btn-upgrades" class="store-tab-btn" data-tab="upgrades">⚡ PERFORMANCE UPGRADES</button>
+            </div>
+
+            <!-- Tab Content 1: Supercars Showcase -->
+            <div id="store-tab-cars" class="store-tab-content active">
+                <!-- Custom .GLB Car Import Banner -->
+                <div class="custom-car-box">
+                    <div class="custom-car-left">
+                        <span class="custom-icon">✨</span>
+                        <div>
+                            <div class="custom-title">IMPORT CUSTOM 3D CAR (.GLB / .GLTF)</div>
+                            <div class="custom-sub">Pilih file model 3D dari laptop Anda atau letakkan file di folder <code>models/</code></div>
+                        </div>
+                    </div>
+                    <div class="custom-car-actions">
+                        <input type="file" id="input-custom-car" accept=".glb,.gltf" style="display: none;">
+                        <button id="btn-upload-car" class="btn-primary btn-upload">📂 IMPORT FILE .GLB</button>
+                        <button id="btn-load-folder-car" class="btn-secondary btn-folder" title="Load .glb dari folder models/">📁 AUTO LOAD MODELS/</button>
+                    </div>
+                </div>
+
+                <div class="cars-showroom-grid">
+                    <!-- Custom Car Card (Dynamically displayed when custom model is loaded) -->
+                    <div id="card-custom-car" class="car-card custom-highlight" data-model="custom" style="display: none;">
+                        <div class="car-card-header">
+                            <span id="custom-car-label" class="car-name">Custom Car</span>
+                            <span class="car-tag tag-unlocked" style="background: rgba(0, 247, 255, 0.2); border-color: #00f7ff; color: #00f7ff;">CUSTOM 3D</span>
+                        </div>
+                        <p class="car-desc">Model 3D kustom eksternal dengan physics, lampu LED, dan efek balap.</p>
+                        <div class="car-stat-row">
+                            <span>SPEED</span>
+                            <div class="stat-bar-track"><div class="stat-bar-fill" style="width: 85%;"></div></div>
+                            <span class="stat-num">250 KM/H</span>
+                        </div>
+                        <div class="car-stat-row">
+                            <span>BOOST</span>
+                            <div class="stat-bar-track"><div class="stat-bar-fill" style="width: 88%;"></div></div>
+                            <span class="stat-num">340 KM/H</span>
+                        </div>
+                        <div class="car-stat-row">
+                            <span>HANDLING</span>
+                            <div class="stat-bar-track"><div class="stat-bar-fill" style="width: 85%;"></div></div>
+                            <span class="stat-num">8.5</span>
+                        </div>
+                        <!-- Transform controls for orientation/scale fixes -->
+                        <div class="custom-transform-row">
+                            <button id="btn-rotate-car" class="btn-transform" title="Putar 90° (jika mobil miring/salah arah)">🔄 Rotate 90°</button>
+                            <button id="btn-reset-transform" class="btn-transform btn-reset" title="Reset rotasi & ukuran ke default">↺ Reset</button>
+                        </div>
+                        <div class="custom-scale-row">
+                            <span class="scale-label">SCALE</span>
+                            <input type="range" id="slider-scale-car" min="30" max="300" value="100" step="5" class="scale-slider">
+                            <span id="scale-display" class="scale-value">100%</span>
+                        </div>
+                        <button class="btn-car-action btn-equip" data-model="custom">SELECT CAR</button>
+                    </div>
+
+                    <div class="car-card active" data-model="apex">
+                        <div class="car-card-header">
+                            <span class="car-name">Apex GT</span>
+                            <span class="car-tag tag-unlocked">UNLOCKED</span>
+                        </div>
+                        <p class="car-desc">Balanced GT aerodynamics with agile steering & cornering response.</p>
+                        <div class="car-stat-row">
+                            <span>SPEED</span>
+                            <div class="stat-bar-track"><div class="stat-bar-fill" style="width: 65%;"></div></div>
+                            <span class="stat-num">210 KM/H</span>
+                        </div>
+                        <div class="car-stat-row">
+                            <span>BOOST</span>
+                            <div class="stat-bar-track"><div class="stat-bar-fill" style="width: 70%;"></div></div>
+                            <span class="stat-num">290 KM/H</span>
+                        </div>
+                        <div class="car-stat-row">
+                            <span>HANDLING</span>
+                            <div class="stat-bar-track"><div class="stat-bar-fill" style="width: 75%;"></div></div>
+                            <span class="stat-num">8.0</span>
+                        </div>
+                        <button class="btn-car-action btn-equipped" data-model="apex">EQUIPPED</button>
+                    </div>
+
+                    <div class="car-card" data-model="supra">
+                        <div class="car-card-header">
+                            <span class="car-name">Supra MK4 2JZ</span>
+                            <span class="car-tag tag-price">🪙 500</span>
+                        </div>
+                        <p class="car-desc">Legendary twin-turbo straight-6 with loud turbo flutter & backfires.</p>
+                        <div class="car-stat-row">
+                            <span>SPEED</span>
+                            <div class="stat-bar-track"><div class="stat-bar-fill" style="width: 76%;"></div></div>
+                            <span class="stat-num">235 KM/H</span>
+                        </div>
+                        <div class="car-stat-row">
+                            <span>BOOST</span>
+                            <div class="stat-bar-track"><div class="stat-bar-fill" style="width: 84%;"></div></div>
+                            <span class="stat-num">320 KM/H</span>
+                        </div>
+                        <div class="car-stat-row">
+                            <span>HANDLING</span>
+                            <div class="stat-bar-track"><div class="stat-bar-fill" style="width: 72%;"></div></div>
+                            <span class="stat-num">7.5</span>
+                        </div>
+                        <button class="btn-car-action btn-buy" data-model="supra" data-price="500">BUY 500 🪙</button>
+                    </div>
+
+                    <div class="car-card" data-model="venom">
+                        <div class="car-card-header">
+                            <span class="car-name">Venom Hypercar</span>
+                            <span class="car-tag tag-price">🪙 1,200</span>
+                        </div>
+                        <p class="car-desc">Active aero splitters, quad center exhausts, and extreme top speed.</p>
+                        <div class="car-stat-row">
+                            <span>SPEED</span>
+                            <div class="stat-bar-track"><div class="stat-bar-fill" style="width: 88%;"></div></div>
+                            <span class="stat-num">260 KM/H</span>
+                        </div>
+                        <div class="car-stat-row">
+                            <span>BOOST</span>
+                            <div class="stat-bar-track"><div class="stat-bar-fill" style="width: 92%;"></div></div>
+                            <span class="stat-num">350 KM/H</span>
+                        </div>
+                        <div class="car-stat-row">
+                            <span>HANDLING</span>
+                            <div class="stat-bar-track"><div class="stat-bar-fill" style="width: 90%;"></div></div>
+                            <span class="stat-num">9.2</span>
+                        </div>
+                        <button class="btn-car-action btn-buy" data-model="venom" data-price="1200">BUY 1,200 🪙</button>
+                    </div>
+
+                    <div class="car-card" data-model="phantom">
+                        <div class="car-card-header">
+                            <span class="car-name">Cyber Phantom</span>
+                            <span class="car-tag tag-price">🪙 2,500</span>
+                        </div>
+                        <p class="car-desc">Prototype racer with holographic stabilizers & built-in coin magnet aura.</p>
+                        <div class="car-stat-row">
+                            <span>SPEED</span>
+                            <div class="stat-bar-track"><div class="stat-bar-fill" style="width: 96%;"></div></div>
+                            <span class="stat-num">280 KM/H</span>
+                        </div>
+                        <div class="car-stat-row">
+                            <span>BOOST</span>
+                            <div class="stat-bar-track"><div class="stat-bar-fill" style="width: 98%;"></div></div>
+                            <span class="stat-num">380 KM/H</span>
+                        </div>
+                        <div class="car-stat-row">
+                            <span>HANDLING</span>
+                            <div class="stat-bar-track"><div class="stat-bar-fill" style="width: 96%;"></div></div>
+                            <span class="stat-num">9.8</span>
+                        </div>
+                        <button class="btn-car-action btn-buy" data-model="phantom" data-price="2500">BUY 2,500 🪙</button>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Tab Content 2: Performance Upgrades -->
+            <div id="store-tab-upgrades" class="store-tab-content">
+                <div class="upgrades-list">
+                    <div class="upgrade-row" data-upgrade="engine">
+                        <div class="upgrade-info">
+                            <div class="upgrade-icon">🏎️</div>
+                            <div>
+                                <div class="upgrade-title">Engine Stage Tuning</div>
+                                <div class="upgrade-sub">Increases base acceleration and top cruising speed (+8 km/h).</div>
+                            </div>
+                        </div>
+                        <div class="upgrade-right">
+                            <div class="level-pips" id="pips-engine"></div>
+                            <button class="btn-upgrade" data-upgrade="engine">UPGRADE 150 🪙</button>
+                        </div>
+                    </div>
+
+                    <div class="upgrade-row" data-upgrade="nitro">
+                        <div class="upgrade-info">
+                            <div class="upgrade-icon">⚡</div>
+                            <div>
+                                <div class="upgrade-title">Nitro Supercharger</div>
+                                <div class="upgrade-sub">Expands boost tank capacity (+20%) and speeds up passive recharge.</div>
+                            </div>
+                        </div>
+                        <div class="upgrade-right">
+                            <div class="level-pips" id="pips-nitro"></div>
+                            <button class="btn-upgrade" data-upgrade="nitro">UPGRADE 150 🪙</button>
+                        </div>
+                    </div>
+
+                    <div class="upgrade-row" data-upgrade="magnet">
+                        <div class="upgrade-info">
+                            <div class="upgrade-icon">🧲</div>
+                            <div>
+                                <div class="upgrade-title">Flux Coin Magnet</div>
+                                <div class="upgrade-sub">Extends magnet duration (+3s) and doubles coin attraction distance.</div>
+                            </div>
+                        </div>
+                        <div class="upgrade-right">
+                            <div class="level-pips" id="pips-magnet"></div>
+                            <button class="btn-upgrade" data-upgrade="magnet">UPGRADE 120 🪙</button>
+                        </div>
+                    </div>
+
+                    <div class="upgrade-row" data-upgrade="gold">
+                        <div class="upgrade-info">
+                            <div class="upgrade-icon">💰</div>
+                            <div>
+                                <div class="upgrade-title">Gold Rush Multiplier</div>
+                                <div class="upgrade-sub">Increases coin value and grants bonus score on every coin picked.</div>
+                            </div>
+                        </div>
+                        <div class="upgrade-right">
+                            <div class="level-pips" id="pips-gold"></div>
+                            <button class="btn-upgrade" data-upgrade="gold">UPGRADE 200 🪙</button>
+                        </div>
+                    </div>
+
+                    <div class="upgrade-row" data-upgrade="shield">
+                        <div class="upgrade-info">
+                            <div class="upgrade-icon">🛡️</div>
+                            <div>
+                                <div class="upgrade-title">Emergency Shield Battery</div>
+                                <div class="upgrade-sub">Starts every race with an active energy shield protecting against crash.</div>
+                            </div>
+                        </div>
+                        <div class="upgrade-right">
+                            <div class="level-pips" id="pips-shield"></div>
+                            <button class="btn-upgrade" data-upgrade="shield">UPGRADE 250 🪙</button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Store Actions -->
+            <div class="store-footer">
+                <button id="btn-close-store" class="btn-primary" style="width: 100%;">RETURN TO GARAGE / RACE</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- ====================================================================
+         PAUSE SCREEN MODAL
+         ==================================================================== -->
+    <div id="pause-screen" class="modal-overlay" style="display: none;">
+        <div class="modal-card">
+            <h2 class="game-title">GAME PAUSED</h2>
+            <p class="game-subtitle">Switch scenery map or take a breather</p>
+
+            <!-- Live Map Switcher in Pause -->
+            <div class="custom-section" style="width: 100%; margin-top: 15px;">
+                <div class="section-title">Live Scenery Switcher</div>
+                <div class="theme-selector-grid">
+                    <button class="theme-btn active" data-theme="beach">🏖️ Pantai Tropis</button>
+                    <button class="theme-btn" data-theme="mountain">🏔️ Gunung Salju</button>
+                    <button class="theme-btn" data-theme="desert">🏜️ Gurun Canyon</button>
+                    <button class="theme-btn" data-theme="sakura">🌸 Lembah Sakura</button>
+                    <button class="theme-btn" data-theme="cyberpunk">🌃 Cyberpunk</button>
+                    <button class="theme-btn" data-theme="sunset">🌇 Neon Sunset</button>
+                </div>
+            </div>
+
+            <div class="btn-group-row" style="width: 100%; margin-top: 18px;">
+                <button id="btn-resume" class="btn-primary" style="flex: 1.4;" data-i18n="resume_race">RESUME RACE</button>
+                <button class="btn-open-settings" data-i18n="settings">⚙️ SETTING</button>
+                <button id="btn-pause-menu" class="btn-secondary" style="flex: 1;" data-i18n="main_menu">🏠 MENU</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- ====================================================================
+         SETTINGS MODAL (Graphics Quality, Language, Controls)
+         ==================================================================== -->
+    <div id="settings-modal">
+        <div class="settings-card">
+            <!-- Header -->
+            <div class="settings-header">
+                <div>
+                    <div class="settings-title" data-i18n="settings_title">GAME SETTINGS</div>
+                    <div class="settings-subtitle" data-i18n="settings_subtitle">Customize Graphics Quality &amp; Language</div>
+                </div>
+                <button class="btn-settings-close" id="btn-close-settings">✕</button>
+            </div>
+
+            <!-- Tabs -->
+            <div class="settings-tabs">
+                <button class="settings-tab-btn active" data-tab="graphics" data-i18n="settings_tab_graphics">🎨 Graphics</button>
+                <button class="settings-tab-btn" data-tab="language" data-i18n="settings_tab_language">🌐 Language</button>
+                <button class="settings-tab-btn" data-tab="controls" data-i18n="settings_tab_controls">🎮 Controls</button>
+            </div>
+
+            <!-- ── Tab: GRAPHICS ── -->
+            <div id="settings-tab-graphics" class="settings-tab-pane active">
+                <span class="settings-label" data-i18n="settings_preset">Graphics Quality Preset</span>
+                <div class="preset-chips">
+                    <button class="setting-preset-btn" data-preset="low" data-i18n="settings_preset_low">Low</button>
+                    <button class="setting-preset-btn" data-preset="medium" data-i18n="settings_preset_medium">Medium</button>
+                    <button class="setting-preset-btn active" data-preset="high" data-i18n="settings_preset_high">High ✓</button>
+                    <button class="setting-preset-btn" data-preset="ultra" data-i18n="settings_preset_ultra">Ultra</button>
+                </div>
+
+                <!-- Shadows Toggle -->
+                <div class="settings-row">
+                    <div class="settings-row-info">
+                        <div class="settings-row-title" data-i18n="settings_shadows">Dynamic Shadows</div>
+                        <div class="settings-row-desc" data-i18n="settings_shadows_desc">Realtime 3D sun shadow map</div>
+                    </div>
+                    <label class="toggle-switch">
+                        <input type="checkbox" id="setting-shadows" checked>
+                        <span class="toggle-slider"></span>
+                    </label>
+                </div>
+
+                <!-- Particles Select -->
+                <div class="settings-row">
+                    <div class="settings-row-info">
+                        <div class="settings-row-title" data-i18n="settings_particles">Particle &amp; Smoke Quality</div>
+                        <div class="settings-row-desc" data-i18n="settings_particles_desc">Crash sparks, turbo backfire &amp; tire smoke</div>
+                    </div>
+                    <select id="setting-particles" class="settings-select">
+                        <option value="low">Low</option>
+                        <option value="high" selected>High</option>
+                        <option value="ultra">Ultra</option>
+                    </select>
+                </div>
+
+                <!-- Resolution Select -->
+                <div class="settings-row">
+                    <div class="settings-row-info">
+                        <div class="settings-row-title" data-i18n="settings_resolution">Render Resolution (DPI)</div>
+                        <div class="settings-row-desc" data-i18n="settings_resolution_desc">1x = fastest, Native = sharper</div>
+                    </div>
+                    <select id="setting-resolution" class="settings-select">
+                        <option value="1x">1x Fixed</option>
+                        <option value="native" selected>Native</option>
+                    </select>
+                </div>
+            </div>
+
+            <!-- ── Tab: LANGUAGE ── -->
+            <div id="settings-tab-language" class="settings-tab-pane">
+                <span class="settings-label" data-i18n="settings_language_select">Select Language</span>
+                <div class="lang-grid">
+                    <button class="lang-btn active" data-lang="id">
+                        <span class="lang-flag">🇮🇩</span>
+                        <span class="lang-name">BAHASA</span>
+                        <span class="lang-native">Bahasa Indonesia</span>
+                    </button>
+                    <button class="lang-btn" data-lang="en">
+                        <span class="lang-flag">🇬🇧</span>
+                        <span class="lang-name">ENGLISH</span>
+                        <span class="lang-native">English (UK)</span>
+                    </button>
+                </div>
+            </div>
+
+            <!-- ── Tab: CONTROLS ── -->
+            <div id="settings-tab-controls" class="settings-tab-pane">
+                <table class="controls-table">
+                    <tbody>
+                        <tr><td><kbd>A</kbd> / <kbd>◀</kbd></td><td data-i18n="controls_steer">Steer Left</td></tr>
+                        <tr><td><kbd>D</kbd> / <kbd>▶</kbd></td><td data-i18n="controls_steer">Steer Right</td></tr>
+                        <tr><td><kbd>W</kbd> / <kbd>SPACE</kbd></td><td data-i18n="controls_nitro">Nitro Boost</td></tr>
+                        <tr><td><kbd>S</kbd> / <kbd>▼</kbd></td><td data-i18n="controls_brake">Brake</td></tr>
+                        <tr><td><kbd>C</kbd></td><td data-i18n="controls_cam">Camera View</td></tr>
+                        <tr><td><kbd>M</kbd></td><td data-i18n="controls_map">Cycle Map</td></tr>
+                        <tr><td><kbd>ESC</kbd> / <kbd>P</kbd></td><td>Pause</td></tr>
+                    </tbody>
+                </table>
+            </div>
+
+            <!-- Save/Close -->
+            <button class="btn-settings-save" id="btn-close-settings-save" data-i18n="settings_save_close">APPLY &amp; CLOSE</button>
+        </div>
+    </div>
+
+    <!-- Main Game Script -->
+    <script type="module" src="js/main.js"></script>
+</body>
+</html>

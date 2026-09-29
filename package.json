@@ -1,0 +1,21 @@
+{
+  "name": "turbo-overdrive-3d",
+  "version": "1.0.0",
+  "description": "High-Speed 3D Highway Traffic Racer with Procedural Sports Cars, Dynamic AI Traffic, Nitro Boost, and Synthwave Audio.",
+  "main": "server.js",
+  "scripts": {
+    "start": "node server.js",
+    "dev": "node server.js",
+    "serve": "node server.js",
+    "py": "python -m http.server 8000"
+  },
+  "keywords": [
+    "threejs",
+    "game",
+    "webgl",
+    "speed-racer",
+    "racing"
+  ],
+  "author": "",
+  "license": "MIT"
+}
